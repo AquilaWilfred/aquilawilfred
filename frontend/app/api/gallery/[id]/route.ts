@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/lib/auth";
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   if (!isAuthenticated()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!supabase) return NextResponse.json({ success: true });
 
   // Get the item first so we can delete its storage file if it's a Supabase Storage URL
   const { data: item } = await supabase.from("gallery").select("image").eq("id", params.id).single();

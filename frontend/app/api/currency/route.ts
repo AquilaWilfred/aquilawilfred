@@ -4,7 +4,7 @@ import { isAuthenticated } from "@/lib/auth";
 
 // Stores global exchange rates in owner_settings under key "exchange_rates"
 export async function GET() {
-  const { data } = await supabase
+  const { data } = await supabase!
     .from("owner_settings")
     .select("data")
     .eq("id", 2)
@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   if (!isAuthenticated()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
-  const { error } = await supabase
+  const { error } = await supabase!
     .from("owner_settings")
     .upsert({ id: 2, data: body }, { onConflict: "id" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

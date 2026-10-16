@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   console.log("Gallery row to insert:", JSON.stringify(row, null, 2));
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase!
     .from("gallery")
     .upsert(row, { onConflict: "id" })
     .select()

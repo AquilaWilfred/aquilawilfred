@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     published: fields.published || false,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase!
     .from("blog_posts")
     .upsert(row, { onConflict: "id" })
     .select()

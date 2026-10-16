@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     visible: body.visible !== false,
     sort_order: body.sort_order || 0,
   };
-  const { data, error } = await supabase.from("experience").upsert(row, { onConflict: "id" }).select().single();
+  const { data, error } = await supabase!.from("experience").upsert(row, { onConflict: "id" }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     sort_order: body.sort_order || 0,
     feasibility: body.feasibility || "",
   };
-  const { data, error } = await supabase.from("services").upsert(row, { onConflict: "id" }).select().single();
+  const { data, error } = await supabase!.from("services").upsert(row, { onConflict: "id" }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }

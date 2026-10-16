@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase-server";
 import { isAuthenticated } from "@/lib/auth";
 
 export async function GET() {
-  const { data, error } = await supabase
+  const { data, error } = await supabase!
     .from("socials")
     .select("*")
     .order("sort_order", { ascending: true });
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   // Upsert all socials at once (body.socials is an array)
   if (Array.isArray(body.socials)) {
-    const { error } = await supabase.from("socials").upsert(body.socials, { onConflict: "id" });
+    const { error } = await supabase!.from("socials").upsert(body.socials, { onConflict: "id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     visible: body.visible !== false,
     sort_order: body.sort_order || 0,
   };
-  const { data, error } = await supabase.from("socials").upsert(row, { onConflict: "id" }).select().single();
+  const { data, error } = await supabase!.from("socials").upsert(row, { onConflict: "id" }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }

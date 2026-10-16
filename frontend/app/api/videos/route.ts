@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     visible: body.visible !== false,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase!
     .from("videos")
     .upsert(row, { onConflict: "id" })
     .select()

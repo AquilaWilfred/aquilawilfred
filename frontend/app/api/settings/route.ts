@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!isAuthenticated()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { error } = await supabase
+  const { error } = await supabase!
     .from("owner_settings")
     .upsert({ id: 1, data: body }, { onConflict: "id" });
 

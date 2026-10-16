@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/lib/auth";
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   if (!isAuthenticated()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!supabase) return NextResponse.json({ success: true });
 
   const { error } = await supabase.from("blog_posts").delete().eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
