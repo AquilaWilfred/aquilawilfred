@@ -6,7 +6,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TechDecorations from "@/components/ui/TechLoader";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
-import { portfolioData, profileImages } from "@/data/portfolio";
+import { portfolioData, profileImages, iconMap } from "@/data/portfolio";
 
 const { owner, projects, skills, services } = portfolioData;
 
@@ -180,14 +180,19 @@ export default function HomePage() {
               <p className="text-sky-900/60 text-lg max-w-2xl mx-auto">From AI model architecture to mobile apps — complete ownership, zero hand-offs.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              {services.map(s=>(
-                <div key={s.title} className="card p-7 group">
-                  <div className="text-4xl mb-4">{s.icon}</div>
-                  <h3 className="font-heading font-bold text-sky-950 text-lg mb-2">{s.title}</h3>
-                  <p className="text-sky-900/60 text-sm leading-relaxed mb-4">{s.desc}</p>
-                  <span className="text-emerald-600 text-sm font-mono font-bold">{s.price}</span>
-                </div>
-              ))}
+              {services.map(s => {
+                const Icon = iconMap[s.icon as keyof typeof iconMap];
+                return (
+                  <div key={s.title} className="card p-7 group">
+                    <div className="mb-4 text-sky-600">
+                      {Icon ? <Icon size={32} /> : null}
+                    </div>
+                    <h3 className="font-heading font-bold text-sky-950 text-lg mb-2">{s.title}</h3>
+                    <p className="text-sky-900/60 text-sm leading-relaxed mb-4">{s.desc}</p>
+                    <span className="text-emerald-600 text-sm font-mono font-bold">{s.price}</span>
+                  </div>
+                );
+              })}
             </div>
             <div className="text-center mt-10">
               <Link href="/services" className="btn-outline">View All Services <ArrowRight size={16}/></Link>

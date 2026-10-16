@@ -2,7 +2,7 @@
 // /home/x-cognivis/websites/aquilawilfred/frontend/data/portfolio.ts
 import { Brain, Code2, Smartphone, Database, BarChart3, MessageSquare, Cloud, SearchCode } from "lucide-react";
 
-const iconMap = {
+export const iconMap = {
   Brain,
   Code2,
   Smartphone,
