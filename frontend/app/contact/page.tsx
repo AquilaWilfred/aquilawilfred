@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Mail, Phone, MapPin, Send, CheckCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
 import { portfolioData, profileImages } from "@/data/portfolio";
 import { useSocials } from "@/hooks/useSocials";
@@ -38,7 +37,7 @@ export default function ContactPage() {
     }
   };
   return (<>
-    <Navbar/><TechDecorations/>
+    <Navbar/>
     <main className="pt-24 pb-24 min-h-screen">
       {/* Hero strip with photo */}
       <section className="bg-gradient-to-r from-sky-600 via-violet-600 to-emerald-600 py-20">

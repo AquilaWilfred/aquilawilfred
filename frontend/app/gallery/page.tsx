@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { ZoomIn, X } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import { portfolioData } from "@/data/portfolio";
 
 type GalleryItem = typeof portfolioData.gallery[0];
@@ -23,7 +22,7 @@ export default function GalleryPage() {
   const cats = ["All", ...Array.from(new Set(gallery.map(g => g.category)))];
   const filtered = cat === "All" ? gallery : gallery.filter(g => g.category === cat);
   return (<>
-    <Navbar/><TechDecorations pageName="Gallery"/>
+    <Navbar/>
     <main className="pt-24 pb-24 min-h-screen bg-hero grid-bg">
       <div className="max-w-screen-2xl mx-auto px-8 lg:px-16">
         <div className="text-center mb-16 pt-10">

@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase-server";
+import { portfolioData } from "@/data/portfolio";
 import { isAuthenticated } from "@/lib/auth";
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("experience")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ data });
+  if (!supabase) {
+    return NextResponse.json({ data: portfolioData.experience });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("experience")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+    return NextResponse.json({ data: data?.length ? data : portfolioData.experience });
+  } catch (error: any) {
+    console.error("experience GET fallback:", error?.message || error);
+    return NextResponse.json({ data: portfolioData.experience });
+  }
 }
 
 export async function POST(req: NextRequest) {

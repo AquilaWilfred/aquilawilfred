@@ -6,6 +6,8 @@ const nextConfig = {
       { protocol: "https", hostname: "source.unsplash.com" },
       { protocol: "https", hostname: "cdn.jsdelivr.net" },
       { protocol: "https", hostname: "raw.githubusercontent.com" },
+      { protocol: "https", hostname: "opengraph.githubassets.com" },
+      { protocol: "https", hostname: "img.youtube.com" },
     ],
   },
 };

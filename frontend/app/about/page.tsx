@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight, Download, MapPin, FileText, ExternalLink, X } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
 import { portfolioData, profileImages } from "@/data/portfolio";
 
@@ -281,7 +280,6 @@ export default function AboutPage() {
 
   return (<>
     <Navbar />
-    <TechDecorations />
     <main className="pt-24 pb-24 min-h-screen">
 
       {/* HERO */}

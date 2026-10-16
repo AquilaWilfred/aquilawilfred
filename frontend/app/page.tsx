@@ -51,7 +51,6 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <TechDecorations />
       <main>
 
         {/* ── HERO ── */}
@@ -149,6 +148,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <TechDecorations variant="inline" />
 
         {/* ── ABOUT STRIP ── */}
         <section className="py-20 bg-white">

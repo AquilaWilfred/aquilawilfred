@@ -18,13 +18,13 @@ interface Props {
   pageName?: string;
   /** Seconds for one full loop. Higher = slower. */
   speed?: number;
+  variant?: "floating" | "inline";
 }
 
-export default function TechDecorations({ speed = 40 }: Props) {
+export default function TechDecorations({ speed = 40, variant = "floating" }: Props) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Small delay so page content loads first, THEN the strip appears
     const t = setTimeout(() => setMounted(true), 200);
     return () => clearTimeout(t);
   }, []);
@@ -53,7 +53,6 @@ export default function TechDecorations({ speed = 40 }: Props) {
             draggable={false}
             className="h-full w-full object-cover"
             onError={(e) => {
-              // If an image fails, fall back to the solid brand colour + label
               e.currentTarget.style.display = "none";
             }}
           />
@@ -71,6 +70,11 @@ export default function TechDecorations({ speed = 40 }: Props) {
       </div>
     ));
 
+  const wrapperClass =
+    variant === "inline"
+      ? "relative z-10 overflow-hidden bg-transparent"
+      : "pointer-events-none fixed inset-x-0 bottom-4 z-10 overflow-hidden";
+
   return (
     <>
       <style>{`
@@ -83,19 +87,16 @@ export default function TechDecorations({ speed = 40 }: Props) {
           width: max-content;
           animation: tech-marquee var(--tech-speed, 40s) linear infinite;
         }
-        .tech-strip-item { margin-right: 16px; } /* margin, not gap, so -50% loops exactly */
+        .tech-strip-item { margin-right: 16px; }
         .tech-strip:hover .tech-strip-track { animation-play-state: paused; }
         @media (prefers-reduced-motion: reduce) {
           .tech-strip-track { animation: none; }
         }
       `}</style>
 
-      <div
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-10 overflow-hidden"
-        aria-hidden="true"
-      >
+      <div className={wrapperClass} aria-hidden="true">
         <div
-          className="tech-strip pointer-events-auto py-3"
+          className={variant === "inline" ? "tech-strip py-3" : "tech-strip pointer-events-auto py-3"}
           style={{
             WebkitMaskImage:
               "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",

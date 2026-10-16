@@ -1,13 +1,53 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Globe } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Globe,
+  Brain,
+  Code2,
+  Smartphone,
+  Database,
+  BarChart3,
+  MessageSquare,
+  Cloud,
+  SearchCode,
+  Target,
+  FlaskConical,
+  MessageCircle,
+  Building2,
+  Rocket,
+  Globe2,
+} from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import { portfolioData } from "@/data/portfolio";
 
 const { owner } = portfolioData;
+
+// Map for service icons
+const serviceIconMap: Record<string, React.ElementType> = {
+  Brain,
+  Code2,
+  Smartphone,
+  Database,
+  BarChart3,
+  MessageSquare,
+  Cloud,
+  SearchCode,
+};
+
+// Map for “Why Work With Me” icons
+const whyIconMap: Record<string, React.ElementType> = {
+  Target,
+  FlaskConical,
+  MessageCircle,
+  Building2,
+  Rocket,
+  Globe2,
+};
+
 
 const CURRENCIES = [
   { code: "KSH", symbol: "KSh", name: "Kenyan Shilling" },
@@ -27,12 +67,12 @@ const PROCESS = [
 ];
 
 const WHY = [
-  { icon: "🎯", title: "Full Ownership", desc: "Complete responsibility from strategy through deployment." },
-  { icon: "🔬", title: "Research-First", desc: "Grounded in the right algorithm and proven engineering patterns." },
-  { icon: "💬", title: "Clear Communication", desc: "Complex concepts translated into measurable business outcomes." },
-  { icon: "🏗️", title: "Clean Architecture", desc: "Well-documented, maintainable code your team can extend." },
-  { icon: "🚀", title: "Continuous Learning", desc: "Forefront of AI/ML research and best practices." },
-  { icon: "🌍", title: "Global Mindset", desc: "Nairobi-based, world-ready. Flexible scheduling for any timezone." },
+  { icon: "Target", title: "Full Ownership", desc: "Complete responsibility from strategy through deployment." },
+  { icon: "FlaskConical", title: "Research-First", desc: "Grounded in the right algorithm and proven engineering patterns." },
+  { icon: "MessageCircle", title: "Clear Communication", desc: "Complex concepts translated into measurable business outcomes." },
+  { icon: "Building2", title: "Clean Architecture", desc: "Well-documented, maintainable code your team can extend." },
+  { icon: "Rocket", title: "Continuous Learning", desc: "Forefront of AI/ML research and best practices." },
+  { icon: "Globe2", title: "Global Mindset", desc: "Nairobi-based, world-ready. Flexible scheduling for any timezone." },
 ];
 
 export default function ServicesPage() {
@@ -88,7 +128,6 @@ export default function ServicesPage() {
   return (
     <>
       <Navbar />
-      <TechDecorations pageName="Services" />
       <main className="pt-24 pb-24 min-h-screen">
 
         {/* Hero */}
@@ -138,7 +177,12 @@ export default function ServicesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {services.map(svc => (
                   <div key={svc.id} className="card p-7 group cursor-default flex flex-col">
-                    <div className="text-4xl mb-4">{svc.icon}</div>
+                    <div className="mb-4">
+                      {(() => {
+                        const Icon = serviceIconMap[svc.icon] || Brain;
+                        return <Icon className="w-10 h-10 text-sky-600" strokeWidth={1.5} />;
+                      })()}
+                    </div>
                     <h3 className="font-heading font-bold text-sky-950 text-lg mb-2">{svc.title}</h3>
                     <p className="text-sky-900/60 text-sm leading-relaxed mb-4 flex-1">{svc.description || svc.desc}</p>
 

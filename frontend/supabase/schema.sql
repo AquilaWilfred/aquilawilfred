@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS socials (
 ALTER TABLE services    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE experience  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE socials     ENABLE ROW LEVEL SECURITY;
+-- Add the missing columns to the existing projects table
+ALTER TABLE projects 
+  ADD COLUMN IF NOT EXISTS github_id     TEXT,
+  ADD COLUMN IF NOT EXISTS github_title  TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS is_customized BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS updated_at    TIMESTAMPTZ DEFAULT NOW();
+
+-- Optional: make title nullable (because we sometimes only store a display title)
+ALTER TABLE projects ALTER COLUMN title DROP NOT NULL;
 
 CREATE POLICY "Public read services"    ON services    FOR SELECT USING (true);
 CREATE POLICY "Public read experience"  ON experience  FOR SELECT USING (true);

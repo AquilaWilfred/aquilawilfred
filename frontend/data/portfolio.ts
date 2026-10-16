@@ -1,5 +1,18 @@
 // Central data store - Admin port/home/x-cognivis/websites/aquilawilfred/frontend/data/portfolio.tsal modifies this via localStorage/API
 // /home/x-cognivis/websites/aquilawilfred/frontend/data/portfolio.ts
+import { Brain, Code2, Smartphone, Database, BarChart3, MessageSquare, Cloud, SearchCode } from "lucide-react";
+
+const iconMap = {
+  Brain,
+  Code2,
+  Smartphone,
+  Database,
+  BarChart3,
+  MessageSquare,
+  Cloud,
+  SearchCode,
+};
+
 export const portfolioData = {
   owner: {
     name: "Amon Aquila Wilfred",
@@ -11,7 +24,7 @@ export const portfolioData = {
     email: "wilfredaquila@gmail.com",
     phone: ["+254 112 554 165", "+254 724 704 865"],
     location: "Nairobi, Kenya · EAT (UTC+3)",
-    bio: "I am Amon Aquila Wilfred — Data Scientist, AI/ML Specialist, Full Stack Engineer, and Founder of Quantum9HQ.Com. Based in Nairobi, Kenya, with 4+ years of hands-on experience, I design and deploy end-to-end intelligent systems that transform raw data into measurable business value.",
+    bio: "I am Amon Aquila Wilfred — Data Scientist, AI/ML Specialist, Full Stack Engineer, and Founder of Quantum9HQ.Com. Nairobi, Kenya, with 4+ years of hands-on experience, I design and deploy end-to-end intelligent systems that transform raw data into measurable business value.",
     availability: "Make Contact and Let's Discuss Your Propositon",
     experience: "4+",
     socials: {
@@ -33,15 +46,15 @@ export const portfolioData = {
     "Data Science": ["Statistical Analysis", "EDA", "Time-Series Forecasting", "A/B Testing", "Predictive Modelling", "Power BI", "Tableau", "Plotly", "Matplotlib"],
     "Systems & Languages": ["Python", "C++", "Kotlin", "TypeScript", "R", "Ruby", "SQL", "Bash", "Cybersecurity", "Ethical Hacking"],
   },
-  services: [
-    { icon: "🧠", title: "AI & ML Solutions", desc: "Custom machine learning models, neural networks, and AI systems tailored to your business needs.", price: "From $500" },
-    { icon: "🌐", title: "Full Stack Development", desc: "Production-grade web applications with React/Next.js frontends and Node.js backends.", price: "From $300" },
-    { icon: "📱", title: "Android Development", desc: "Feature-complete Android apps with Kotlin, Jetpack Compose, Firebase and Google Play publishing.", price: "From $400" },
-    { icon: "📊", title: "Data Engineering", desc: "ETL pipelines, data warehousing, and big data processing for scalable analytics.", price: "From $350" },
-    { icon: "🔍", title: "Business Intelligence", desc: "Interactive dashboards, KPI tracking, and data visualization for executive decision-making.", price: "From $250" },
-    { icon: "💬", title: "Chatbot & NLP Systems", desc: "Conversational AI, RAG pipelines, and transformer-based NLP solutions.", price: "From $450" },
-    { icon: "☁️", title: "Cloud Architecture", desc: "AWS, GCP, Azure infrastructure design, deployment, and cost optimization.", price: "From $300" },
-    { icon: "🔎", title: "Code Review & Audit", desc: "Comprehensive code reviews identifying bugs, security vulnerabilities, and architectural weaknesses.", price: "From $150" },
+    services: [
+    { icon: "Brain", title: "AI & ML Solutions", desc: "Custom machine learning models, neural networks, and AI systems tailored to your business needs.", price: "From $500" },
+    { icon: "Code2", title: "Full Stack Development", desc: "Production-grade web applications with React/Next.js frontends and Node.js backends.", price: "From $300" },
+    { icon: "Smartphone", title: "Android Development", desc: "Feature-complete Android apps with Kotlin, Jetpack Compose, Firebase and Google Play publishing.", price: "From $400" },
+    { icon: "Database", title: "Data Engineering", desc: "ETL pipelines, data warehousing, and big data processing for scalable analytics.", price: "From $350" },
+    { icon: "BarChart3", title: "Business Intelligence", desc: "Interactive dashboards, KPI tracking, and data visualization for executive decision-making.", price: "From $250" },
+    { icon: "MessageSquare", title: "Chatbot & NLP Systems", desc: "Conversational AI, RAG pipelines, and transformer-based NLP solutions.", price: "From $450" },
+    { icon: "Cloud", title: "Cloud Architecture", desc: "AWS, GCP, Azure infrastructure design, deployment, and cost optimization.", price: "From $300" },
+    { icon: "SearchCode", title: "Code Review & Audit", desc: "Comprehensive code reviews identifying bugs, security vulnerabilities, and architectural weaknesses.", price: "From $150" },
   ],
   projects: [
     {

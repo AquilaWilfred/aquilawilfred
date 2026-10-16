@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Clock, ArrowRight, Calendar } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import { portfolioData, profileImages } from "@/data/portfolio";
 const { owner } = portfolioData;
 
@@ -113,7 +112,7 @@ export default function BlogPage() {
   </>);
 
   return (<>
-    <Navbar/><TechDecorations/>
+    <Navbar/>
     <main className="pt-24 pb-24 min-h-screen bg-hero grid-bg">
       <div className="max-w-screen-2xl mx-auto px-8 lg:px-16">
         <div className="text-center mb-16 pt-10">

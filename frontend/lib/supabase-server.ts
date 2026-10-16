@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-if (!process.env.SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
-if (!process.env.SUPABASE_SERVICE_KEY) throw new Error("Missing SUPABASE_SERVICE_KEY");
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-// Server-side client with full service key (never exposed to browser)
-export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// Server-side client with full service key (never exposed to browser).
+// If the environment is not configured yet, keep the app running with
+// local fallback data instead of crashing the whole app.
+export const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;

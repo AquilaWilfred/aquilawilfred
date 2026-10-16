@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TechDecorations from "@/components/ui/TechLoader";
 import { portfolioData } from "@/data/portfolio";
 const { skills } = portfolioData;
 const colors: Record<string,string> = {"AI & Machine Learning":"#0EA5E9","NLP & Conversational AI":"#7C3AED","Full Stack Web":"#059669","Android Development":"#F59E0B","Data Engineering":"#06B6D4","Cloud & DevOps":"#EF4444","Data Science":"#8B5CF6","Systems & Languages":"#EC4899"};
@@ -10,7 +9,7 @@ const bgs: Record<string,string> = {"AI & Machine Learning":"#E0F2FE","NLP & Con
 export default function SkillsPage() {
   const [active,setActive] = useState<string|null>(null);
   return (<>
-    <Navbar/><TechDecorations pageName="Skills"/>
+    <Navbar/>
     <main className="pt-24 pb-24 min-h-screen bg-hero grid-bg">
       <div className="max-w-screen-2xl mx-auto px-8 lg:px-16">
         <div className="text-center mb-16 pt-10">

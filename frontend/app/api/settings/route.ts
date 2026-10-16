@@ -3,14 +3,22 @@ import { supabase } from "@/lib/supabase-server";
 import { isAuthenticated } from "@/lib/auth";
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("owner_settings")
-    .select("data")
-    .eq("id", 1)
-    .single();
+  if (!supabase) {
+    return NextResponse.json({ data: null });
+  }
 
-  if (error || !data) return NextResponse.json({ data: null });
-  return NextResponse.json({ data: data.data });
+  try {
+    const { data, error } = await supabase
+      .from("owner_settings")
+      .select("data")
+      .eq("id", 1)
+      .single();
+
+    if (error || !data) return NextResponse.json({ data: null });
+    return NextResponse.json({ data: data.data });
+  } catch {
+    return NextResponse.json({ data: null });
+  }
 }
 
 export async function POST(req: NextRequest) {
