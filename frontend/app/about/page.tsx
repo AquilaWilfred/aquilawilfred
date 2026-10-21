@@ -1,7 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Download, MapPin, FileText, ExternalLink, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowRight, ChevronDown, ChevronUp, Download, Eye, MapPin, Minus, PanelLeft, Plus, Sparkles, X } from "lucide-react";
+import { useMemo } from "react";
+import { buildCvHtml, printPdf, withTemplate, TEMPLATES, DEFAULT_LAYOUT, type CV, norm } from "@/lib/cv/engine";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
@@ -46,6 +49,274 @@ const photoStories = [
   },
 ];
 
+// ── CV GALLERY: small cards, click to open the full preview ──────────────────
+function CvThumb({ cv }: { cv: CV }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.3);
+  const html = useMemo(() => {
+    try { return buildCvHtml(cv, false); } catch { return ""; }
+  }, [cv]);
+
+  useEffect(() => {
+    if (!box.current) return;
+    const ro = new ResizeObserver(([e]) => setScale(e.contentRect.width / 794));
+    ro.observe(box.current);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={box} className="relative w-full overflow-hidden bg-white" style={{ aspectRatio: "210 / 297" }}>
+      <iframe
+        title="CV thumbnail" srcDoc={html} sandbox="allow-scripts" tabIndex={-1} aria-hidden
+        style={{ position: "absolute", left: 0, top: 0, width: 794, height: 1123, border: 0,
+          transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none" }}
+      />
+    </div>
+  );
+}
+
+const PITCH = 1128.74; // one A4 page (296mm) plus the 10px gap, in the screen preview
+
+function PageThumb({ html, index, active, onClick }: { html: string; index: number; active: boolean; onClick: () => void }) {
+  const W = 112, s = W / 794, h = 1118.74 * s;
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-1.5 w-full group" aria-label={`Go to page ${index + 1}`}>
+      <div className={`relative overflow-hidden bg-white rounded-sm transition-all ${active ? "ring-2 ring-sky-400" : "ring-1 ring-white/20 group-hover:ring-white/50"}`}
+        style={{ width: W, height: h }}>
+        <iframe title={`Page ${index + 1}`} srcDoc={html} sandbox="allow-scripts" scrolling="no" tabIndex={-1} aria-hidden
+          style={{ position: "absolute", left: 0, top: 0, width: 794, height: (index + 1) * 1119, border: 0, pointerEvents: "none",
+            transformOrigin: "top left", transform: `translateY(${-index * 1118.74 * s}px) scale(${s})` }} />
+      </div>
+      <span className={`text-xs font-mono ${active ? "text-sky-300" : "text-white/50"}`}>{index + 1}</span>
+    </button>
+  );
+}
+
+const ZMIN = 0.4, ZMAX = 2.5;
+
+// Bottom edge of the site navbar, so the viewer can start right under it.
+function navbarBottom() {
+  const n = document.querySelector("header") ?? document.querySelector("nav");
+  const b = n ? Math.round(n.getBoundingClientRect().bottom) : 0;
+  return b > 0 && b < 240 ? b : 96;
+}
+
+function CvModal({ cv, initial, name, onClose }: { cv: CV; initial: string; name: string; onClose: () => void }) {
+  const [tpl, setTpl] = useState(initial);
+  const [pages, setPages] = useState(1);
+  const [toc, setToc] = useState<{ t: string; p: number; y: number }[]>([]);
+  const [cur, setCur] = useState(0);
+  const [avail, setAvail] = useState(900);
+  const [zoom, setZoom] = useState<number | null>(null); // null = fit to width
+  const [top, setTop] = useState(navbarBottom);
+  const [side, setSide] = useState(() => window.innerWidth >= 768);
+  const [tab, setTab] = useState<"pages" | "outline">("pages");
+  const scroller = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const keep = useRef<number | null>(null);
+
+  const shown = useMemo(() => withTemplate(cv, tpl), [cv, tpl]);
+  const html = useMemo(() => {
+    try { return buildCvHtml(shown, true); }
+    catch (e) { console.error("CV render failed", e); return "<p style='font-family:sans-serif;padding:24px'>CV preview unavailable.</p>"; }
+  }, [shown]);
+  const thumbHtml = useMemo(() => { try { return buildCvHtml(shown, false); } catch { return ""; } }, [shown]);
+
+  const fit = Math.min(1.5, Math.max(0.3, (avail - 32) / 794));
+  const scale = zoom ?? fit;
+
+  useEffect(() => {
+    const on = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow || typeof e.data?.cvPages !== "number") return;
+      setPages(e.data.cvPages);
+      if (Array.isArray(e.data.toc)) setToc(e.data.toc);
+    };
+    window.addEventListener("message", on);
+    return () => window.removeEventListener("message", on);
+  }, []);
+
+  useEffect(() => {
+    if (!scroller.current) return;
+    const ro = new ResizeObserver(([e]) => setAvail(e.contentRect.width));
+    ro.observe(scroller.current);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setTop(navbarBottom());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", esc);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", esc); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  // After a zoom change, keep looking at the same part of the CV.
+  useLayoutEffect(() => {
+    if (keep.current != null && scroller.current) {
+      scroller.current.scrollTop = keep.current * scale;
+      keep.current = null;
+    }
+  }, [scale]);
+
+  const setZ = (z: number | null) => {
+    const next = z === null ? fit : Math.min(ZMAX, Math.max(ZMIN, Math.round(z * 100) / 100));
+    if (next !== scale && scroller.current) keep.current = scroller.current.scrollTop / scale;
+    setZoom(z === null ? null : next);
+  };
+
+  const goTo = (y: number) => scroller.current?.scrollTo({ top: Math.max(0, y * scale), behavior: "smooth" });
+  const goPage = (i: number) => goTo(Math.min(pages - 1, Math.max(0, i)) * PITCH);
+  const onScroll = () => {
+    const el = scroller.current; if (!el) return;
+    const mid = el.scrollTop / scale + el.clientHeight / scale / 2;
+    setCur(Math.min(pages - 1, Math.max(0, Math.floor((mid - 10) / PITCH))));
+  };
+  const pickTemplate = (id: string) => {
+    setTpl(id); setPages(1); setToc([]); setCur(0);
+    scroller.current?.scrollTo({ top: 0 });
+  };
+
+  const H = 20 + pages * 1129;
+  const iconBtn = "p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 disabled:opacity-30 disabled:hover:bg-white/10";
+
+  return createPortal(
+    // starts below the site navbar, so the navbar always stays visible and clickable
+    <div onClick={onClose} className="fixed left-0 right-0 bottom-0 z-40 p-2 md:p-3"
+      style={{ top, background: "rgba(2,6,23,0.88)", backdropFilter: "blur(8px)" }}>
+      <div onClick={e => e.stopPropagation()}
+        className="flex flex-col w-full h-full rounded-2xl overflow-hidden border border-white/15 bg-slate-900 shadow-2xl">
+
+        {/* toolbar */}
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 border-b border-white/10">
+          <button onClick={() => setSide(s => !s)} aria-label="Toggle sidebar" className={`${iconBtn} ${side ? "!bg-sky-500/30" : ""}`}>
+            <PanelLeft size={16} />
+          </button>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATE_IDS.map(id => (
+              <button key={id} onClick={() => pickTemplate(id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-heading font-semibold border transition-all ${tpl === id ? "bg-sky-500 border-sky-400 text-white" : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"}`}>
+                {TEMPLATES[id].label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+            {/* zoom */}
+            <div className="flex items-center gap-1">
+              <button onClick={() => setZ(scale - 0.1)} disabled={scale <= ZMIN} aria-label="Zoom out" className={iconBtn}><Minus size={16} /></button>
+              <button onClick={() => setZ(null)} title="Fit to width"
+                className="min-w-[3.5rem] px-2 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 text-sm font-mono">
+                {Math.round(scale * 100)}%
+              </button>
+              <button onClick={() => setZ(scale + 0.1)} disabled={scale >= ZMAX} aria-label="Zoom in" className={iconBtn}><Plus size={16} /></button>
+            </div>
+            <span className="w-px h-6 bg-white/15 mx-1 hidden sm:block" />
+            {/* page nav */}
+            <button onClick={() => goPage(cur - 1)} disabled={cur <= 0} aria-label="Previous page" className={iconBtn}><ChevronUp size={16} /></button>
+            <span className="text-white/80 text-sm font-mono min-w-[3.5rem] text-center">{cur + 1} / {pages}</span>
+            <button onClick={() => goPage(cur + 1)} disabled={cur >= pages - 1} aria-label="Next page" className={iconBtn}><ChevronDown size={16} /></button>
+            <button onClick={() => printPdf(shown)}
+              className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 px-3 py-2 rounded-lg text-white text-sm font-semibold transition-colors ml-1">
+              <Download size={15} /> <span className="hidden sm:inline">Download PDF</span>
+            </button>
+            <button onClick={onClose} aria-label="Close" className={iconBtn}><X size={16} /></button>
+          </div>
+        </div>
+
+        <div className="flex flex-1 min-h-0">
+          {/* sidebar: pages + outline */}
+          {side && (
+            <aside className="w-40 shrink-0 flex flex-col border-r border-white/10 bg-slate-950/60">
+              <div className="flex p-2 gap-1 border-b border-white/10">
+                {(["pages", "outline"] as const).map(t => (
+                  <button key={t} onClick={() => setTab(t)}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-semibold capitalize ${tab === t ? "bg-white/15 text-white" : "text-white/50 hover:text-white/80"}`}>{t}</button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                {tab === "pages" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    {Array.from({ length: pages }, (_, i) => (
+                      <PageThumb key={`${tpl}-${i}`} html={thumbHtml} index={i} active={cur === i} onClick={() => goPage(i)} />
+                    ))}
+                  </div>
+                ) : toc.length ? (
+                  <ul className="space-y-1">
+                    {toc.map((s, i) => (
+                      <li key={i}>
+                        <button onClick={() => goTo(10 + s.p * PITCH + s.y - 12)}
+                          className="w-full text-left px-2 py-1.5 rounded-md text-xs text-white/70 hover:bg-white/10 hover:text-white flex justify-between gap-2">
+                          <span className="truncate">{s.t}</span>
+                          <span className="font-mono text-white/40 shrink-0">{s.p + 1}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-white/40 text-xs">No sections yet.</p>}
+              </div>
+            </aside>
+          )}
+
+          {/* full preview, scrolls both ways when zoomed in */}
+          <div ref={scroller} onScroll={onScroll} className="flex-1 min-w-0 overflow-auto" style={{ background: "#94A3B8" }}>
+            <div className="mx-auto" style={{ width: 794 * scale, height: H * scale }}>
+              <iframe key={tpl} ref={frame} title={`${name} CV`} srcDoc={html} sandbox="allow-scripts allow-popups" scrolling="no"
+                style={{ width: 794, height: H, border: 0, display: "block", transform: `scale(${scale})`, transformOrigin: "top left" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+const TEMPLATE_IDS = Object.keys(TEMPLATES);
+
+function CvShowcase({ cv, name }: { cv: CV; name: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const cards = useMemo(() => TEMPLATE_IDS.map(id => ({ id, cv: withTemplate(cv, id) })), [cv]);
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        {cards.map(({ id, cv: tcv }) => (
+          <div key={id} className="group flex flex-col">
+            <button onClick={() => setOpen(id)} aria-label={`View ${TEMPLATES[id].label} CV`}
+              className="relative block rounded-xl overflow-hidden border border-white/15 shadow-xl transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:border-sky-400/60">
+              <CvThumb cv={tcv} />
+              <div className="absolute inset-0 flex items-center justify-center bg-sky-950/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="flex items-center gap-2 bg-white text-sky-900 text-sm font-semibold px-4 py-2 rounded-lg shadow">
+                  <Eye size={15} /> View
+                </span>
+              </div>
+            </button>
+            <div className="mt-4 text-center">
+              <p className="font-heading font-semibold text-white">{TEMPLATES[id].label}</p>
+              <p className="text-white/50 text-xs mt-1 leading-relaxed">{TEMPLATES[id].blurb}</p>
+              <div className="flex justify-center gap-2 mt-3">
+                <button onClick={() => setOpen(id)}
+                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-lg text-white text-xs font-semibold">
+                  <Eye size={13} /> View
+                </button>
+                <button onClick={() => printPdf(tcv)}
+                  className="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 px-3 py-1.5 rounded-lg text-white text-xs font-semibold">
+                  <Download size={13} /> Download
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {open && <CvModal cv={cv} initial={open} name={name} onClose={() => setOpen(null)} />}
+    </>
+  );
+}
 // ── LIGHTBOX — full image, no crop ───────────────────────────────────────────
 function Lightbox({ story, onClose }: { story: typeof photoStories[0]; onClose: () => void }) {
   useEffect(() => {
@@ -267,16 +538,56 @@ export default function AboutPage() {
   const [activeExp, setActiveExp] = useState<number | null>(null);
   const [experience, setExperience] = useState<any[]>(portfolioData.experience);
   const [ownerData, setOwnerData] = useState<any>(portfolioData.owner);
-  const [resumeUrl, setResumeUrl] = useState("/myResume.pdf");
+  const [cv, setCv] = useState<CV | null>(null);
+  const [cvReady, setCvReady] = useState(false);
+  const [heroPreview, setHeroPreview] = useState(false);
+
+  const fallbackCv = useMemo(() => norm({
+    name: ownerData.name || "Aquila Wilfred",
+    headline: ownerData.title || "AI Engineer & Software Developer",
+    email: ownerData.email || "",
+    phone: ownerData.phone || "",
+    location: ownerData.location || "Nairobi, Kenya",
+    photo: profileImages.avatar || "",
+    summary: ownerData.bio || "",
+    links: [],
+    skills: [{ group: "Core", items: "AI, product strategy, software engineering" }],
+    languages: "English",
+    education: [{
+      title: "Professional profile",
+      org: ownerData.company || "Independent consulting",
+      period: "Available",
+      body: "<p>Building AI, automation and digital products that turn ideas into measurable outcomes.</p>",
+    }],
+    experience: [],
+    projects: [],
+    competitions: [],
+    certifications: [],
+    awards: [],
+    volunteering: [],
+    referees: [],
+    layout: { ...DEFAULT_LAYOUT, ...TEMPLATES.classic.layout } as typeof DEFAULT_LAYOUT,
+  }), [ownerData]);
 
   useEffect(() => {
-    fetch("/api/experience").then(r => r.json()).then(({ data }) => {
-      if (data?.length) setExperience(data.filter((e: any) => e.visible !== false));
-    }).catch(() => {});
-    fetch("/api/settings").then(r => r.json()).then(({ data }) => {
-      if (data) { setOwnerData((p: any) => ({ ...p, ...data })); if (data.resumeUrl) setResumeUrl(data.resumeUrl); }
-    }).catch(() => {});
-  }, []);
+    let alive = true;
+    const getJson = (u: string) => fetch(u).then(r => r.json()).catch(() => null);
+
+    getJson("/api/experience").then(p => {
+      if (alive && Array.isArray(p?.data) && p.data.length) setExperience(p.data.filter((e: any) => e.visible !== false));
+    });
+    getJson("/api/settings").then(p => {
+      if (alive && p?.data) setOwnerData((o: any) => ({ ...o, ...p.data }));
+    });
+    getJson("/api/cv").then(p => {
+      if (!alive) return;
+      const raw = p?.data;
+      const c = raw && typeof raw === "object" && "data" in raw ? raw.data : raw;
+      setCv(c && typeof c === "object" && Array.isArray((c as any).education) ? norm(c) : null);
+      setCvReady(true);
+    });
+    return () => { alive = false; };
+  }, []); // run once; depending on fallbackCv re-triggered the fetches in a loop
 
   return (<>
     <Navbar />
@@ -314,7 +625,10 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-wrap gap-4">
                 <Link href="/contact" className="btn-primary">Work With Me <ArrowRight size={16} /></Link>
-                {resumeUrl && <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="btn-outline"><Download size={16} /> Download CV</a>}
+                <button onClick={() => setHeroPreview(true)} disabled={!cvReady} className="btn-outline"><Eye size={16} /> Preview</button>
+                <Link href="/create-cv" className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-white bg-gradient-to-r from-violet-600 to-sky-500 hover:opacity-90 transition">
+                  <Sparkles size={16} /> Create yours
+                </Link>
               </div>
             </div>
           </div>
@@ -352,38 +666,17 @@ export default function AboutPage() {
       </section>
 
       {/* RESUME */}
-      {resumeUrl && (
+      {cvReady  && (
         <section className="py-20 bg-gradient-to-br from-sky-950 via-violet-950 to-sky-950 relative overflow-hidden">
           <div className="blob w-96 h-96 top-0 right-0 opacity-10" style={{ background: "#38BDF8" }} />
           <div className="blob w-72 h-72 bottom-0 left-0 opacity-10" style={{ background: "#A78BFA", animationDelay: "2s" }} />
           <div className="max-w-screen-2xl mx-auto px-8 lg:px-16 relative z-10">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <span className="inline-block bg-white/10 text-white text-xs font-mono font-bold px-4 py-1.5 rounded-full mb-4 tracking-widest">MY RESUME</span>
               <h2 className="font-heading font-bold text-white text-3xl mb-3">Curriculum Vitae</h2>
-              <p className="text-white/50 text-sm">Click to open the full document</p>
+              <p className="text-white/50 text-sm">Click a template to preview it full size, then download it.</p>
             </div>
-            <div className="max-w-2xl mx-auto">
-              <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
-                className="group block relative rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 hover:scale-[1.02]"
-                style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
-                <iframe src={resumeUrl.includes("drive.google.com") ? resumeUrl.replace("/view", "/preview") : `${resumeUrl}#page=1&view=FitH&toolbar=0&navpanes=0`}
-                  className="w-full pointer-events-none" style={{ height: "500px", border: "none", background: "#fff" }} title="Resume Preview" />
-                <div className="absolute inset-0 bg-gradient-to-t from-sky-950/95 via-sky-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-12">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-violet-500 flex items-center justify-center mx-auto mb-4 shadow-xl"><FileText size={28} className="text-white" /></div>
-                    <p className="text-white font-heading font-bold text-xl mb-2">Open Full Resume</p>
-                    <p className="text-white/60 text-sm flex items-center justify-center gap-2"><ExternalLink size={14} />Opens in new tab</p>
-                  </div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 px-6 py-4 flex items-center justify-between" style={{ background: "rgba(5,15,40,0.9)", backdropFilter: "blur(10px)", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-violet-500 flex items-center justify-center"><FileText size={16} className="text-white" /></div>
-                    <div><p className="text-white text-sm font-heading font-semibold">{ownerData.name} — CV</p><p className="text-white/40 text-xs font-mono">Click to open full document</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-sky-500 px-4 py-2 rounded-xl"><Download size={14} className="text-white" /><span className="text-white text-sm font-semibold">Download</span></div>
-                </div>
-              </a>
-            </div>
+            <CvShowcase cv={cv ?? fallbackCv} name={ownerData.name} />
           </div>
         </section>
       )}
@@ -459,6 +752,9 @@ export default function AboutPage() {
         </div>
       </section>
     </main>
+    {heroPreview && (
+      <CvModal cv={cv ?? fallbackCv} initial={(cv ?? fallbackCv).layout.template} name={ownerData.name} onClose={() => setHeroPreview(false)} />
+    )}
     <Footer />
   </>);
 }

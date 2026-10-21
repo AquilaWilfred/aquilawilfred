@@ -10,6 +10,7 @@ import {
   Login,
   Sidebar,
   Dashboard,
+  CvBuilder,
   ProjectsEditor,
   BlogEditor,
   GalleryEditor,
@@ -68,6 +69,8 @@ export default function AdminPage() {
     switch (section) {
       case "dashboard":
         return <Dashboard data={data} extras={extras} />;
+      case "cv":
+        return <CvBuilder />;
       case "projects":
         return <ProjectsEditor data={data} onRefresh={refresh} />;
       case "blog":

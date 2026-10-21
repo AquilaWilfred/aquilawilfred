@@ -1,0 +1,1 @@
+export const CV_PRICE = 70;

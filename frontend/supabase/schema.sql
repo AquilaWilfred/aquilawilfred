@@ -140,3 +140,18 @@ CREATE POLICY "Public read socials"     ON socials     FOR SELECT USING (true);
 CREATE POLICY "Service write services"    ON services    FOR ALL USING (auth.role() = 'service_role');
 CREATE POLICY "Service write experience"  ON experience  FOR ALL USING (auth.role() = 'service_role');
 CREATE POLICY "Service write socials"     ON socials     FOR ALL USING (auth.role() = 'service_role');
+
+create table cv_orders (
+  id uuid primary key,
+  phone text not null,
+  amount int not null,
+  status text not null default 'pending',   -- pending | paid | failed | cancelled
+  checkout_request_id text unique,
+  merchant_request_id text,
+  mpesa_receipt text,
+  result_desc text,
+  access_token text not null unique,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table cv_orders enable row level security;  -- no policies: only the server key can touch it

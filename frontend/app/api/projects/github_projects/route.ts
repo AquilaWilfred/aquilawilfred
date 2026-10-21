@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           Accept: "application/vnd.github+json",
-          // Uncomment if you have a token (recommended)
+          // Uncomment if you have a token 
           // Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
         },
         next: { revalidate: 3600 }, // cache 1 hour

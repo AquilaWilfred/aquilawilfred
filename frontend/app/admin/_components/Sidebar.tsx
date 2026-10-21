@@ -14,6 +14,7 @@ import {
   Briefcase as BriefcaseIcon,
   Users,
   Link2,
+  FileText,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
@@ -66,6 +67,7 @@ export default function Sidebar({
     badge: number | null;
   }[] = [
     { s: "dashboard", icon: <LayoutDashboard size={18} />, label: "Dashboard", badge: null },
+    { s: "cv", icon: <FileText size={18} />, label: "CV Builder", badge: null },
     { s: "projects", icon: <FolderKanban size={18} />, label: "Projects", badge: data.projects.length },
     {
       s: "blog",

@@ -2,6 +2,7 @@
 
 export type Section =
   | "dashboard"
+  | "cv"
   | "projects"
   | "blog"
   | "gallery"

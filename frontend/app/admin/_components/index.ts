@@ -3,6 +3,7 @@
 export { default as Login } from "./Login";
 export { default as Sidebar } from "./Sidebar";
 export { default as Dashboard } from "./Dashboard";
+export { default as CvBuilder } from "./editors/CvBuilder";
 
 export { default as ProjectsEditor } from "./editors/ProjectsEditor";
 export { default as BlogEditor } from "./editors/BlogEditor";
