@@ -299,13 +299,30 @@ export const shade = (hex: string, k: number) => {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("")}`;
 };
 
+/* ───────────────────────────── WATERMARK (unpaid previews) ───────────────────────────── */
+export type WmConfig = { image: string; text: string; opacity: number; templates: Record<string, boolean> };
+export const WM_LOGO = "/logo.png"; // used whenever no custom logo has been uploaded
+const WM_IMG = /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/;
+export const normWm = (raw: unknown): WmConfig => {
+  const r = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const rt = r.templates && typeof r.templates === "object" ? (r.templates as Record<string, unknown>) : {};
+  const templates: Record<string, boolean> = {};
+  for (const id of Object.keys(TEMPLATES)) templates[id] = typeof rt[id] === "boolean" ? (rt[id] as boolean) : true;
+  return {
+    image: typeof r.image === "string" && r.image.length <= 700_000 && WM_IMG.test(r.image) ? r.image : "",
+    text: typeof r.text === "string" ? r.text.slice(0, 60) : "PREVIEW · KES 70 TO DOWNLOAD",
+    opacity: typeof r.opacity === "number" && Number.isFinite(r.opacity) ? Math.min(0.35, Math.max(0.04, r.opacity)) : 0.12,
+    templates,
+  };
+};
+
 /**
  * Builds the whole document. Content is split into "units" (header, each entry, each section's first
  * entry together with its heading, each sidebar block). A small script measures them and packs main
  * column and sidebar onto A4 pages, so headers, footers, running heads and real page numbers are
  * exact and nothing is cut across two pages. Both templates share this engine.
  */
-export function buildCvHtml(cv: CV, forScreen = false, watermark = false): string {
+export function buildCvHtml(cv: CV, forScreen = false, watermark: boolean | WmConfig = false): string {
   const L: Layout = { ...DEFAULT_LAYOUT, ...cv.layout };
   const el = L.template === "elegant";
   const f = FONTS[L.font] ?? FONTS.times;
@@ -333,6 +350,35 @@ export function buildCvHtml(cv: CV, forScreen = false, watermark = false): strin
   const hdr = bar("hdr", L.headerOn ? L.header : ["", "", ""]);
   const ftr = bar("ftr", footerVals);
 
+  const wm = watermark ? normWm(watermark === true ? {} : watermark) : null;
+  const wmOn = !!wm && wm.templates[L.template] !== false; // each template can opt out
+  const q = (s: string) => `"${s.replace(/[\\"]/g, "\\$&").replace(/[\r\n<]/g, " ")}"`;
+  const wmCss = !wm || !wmOn ? "" :
+      `.page::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 9;
+          pointer-events: none;
+          background: url(${q(wm.image || WM_LOGO)}) center 44% / 58% no-repeat;
+          opacity: ${wm.opacity};
+          transform: rotate(-18deg);
+      }` +
+      (wm.text.trim() ? `
+      .page::after {
+          content: ${q(wm.text.trim())};
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: calc(44% + 29% + 20mm);
+          z-index: 9;
+          pointer-events: none;
+          text-align: center;
+          font: 700 20px sans-serif;
+          letter-spacing: .12em;
+          color: rgba(15, 23, 42, ${Math.min(0.5, wm.opacity * 2.2).toFixed(2)});
+          transform: rotate(-18deg);
+      }` : "");
   const entries = (k: ListKey) => cv[k].filter(used).map((e, n) =>
     `<div class="e"><div class="row"><b>${el && k === "projects" ? `<span class="num">${n + 1}</span>` : ""}${esc(e.title)}</b><span class="det">${esc(e.period)}</span></div>` +
     (e.org.trim() ? `<div class="org det">${esc(e.org)}</div>` : "") +
@@ -452,7 +498,7 @@ h2{font-size:${SCALE.heading}em;line-height:1.3;margin:0 0 ${gap}em;color:${L.he
 .row{display:flex;justify-content:space-between;gap:14px}.row b{color:var(--text)}.row span.det{white-space:nowrap}.org{font-style:italic}
 .body ul,.body ol{margin:0;padding-left:1.4em}.body li::marker{color:var(--accent)}.body p{margin:0 0 ${gap}em}.body>*:last-child{margin-bottom:0}.sk{margin:0}.sk b{color:var(--text)}${elCss}
 ${forScreen ? "html{background:#94A3B8}body{padding:10px 0}.page{margin:0 auto 10px;box-shadow:0 2px 10px rgba(0,0,0,.3)}" : ""}
-${watermark ? ".page::after{content:'PREVIEW · KES 70 TO DOWNLOAD';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(-30deg);font:700 34px sans-serif;letter-spacing:.1em;color:rgba(15,23,42,.09);pointer-events:none;white-space:nowrap;z-index:9}" : ""}`;
+${wmCss}`;
 
   const J = (t: string) => JSON.stringify(t).replace(/</g, "\\u003c");
   const avail = ((PAGE_H - 2 * my - 1) * 96) / 25.4;

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Download, Plus, Trash2, AlertTriangle, ImagePlus, ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
 import RichEditor from "@/components/editor/RichEditor";
 import {
-  type Entry, type ListKey, type Trio, type Layout, type CV, type SideType, type SideBlock, type Step,
+  type Entry, type ListKey, type Trio, type Layout, type CV, type SideType, type SideBlock, type Step, type WmConfig,
   SECTIONS, ORDER_DEFAULT, PRESETS, ACCENTS, TEXTS, DEFAULT_LAYOUT, TEMPLATES, SIDE_TYPES,
   LISTS, STEPS, SCALE, REQUIRED_KEYS,
   mkBlock, blankEntry, plain, used, problems, clamp, safeColor, buildCvHtml, printPdf,
@@ -432,16 +432,19 @@ export type CvEditorProps = {
   onChange: (cv: CV) => void;
   onDownload?: () => void;   // default: open the print dialog
   downloadLabel?: string;
-  watermark?: boolean;       // public site: true until paid
+  watermark?: boolean | WmConfig;   // public site: the watermark settings until paid, false once paid
   toolbar?: ReactNode;       // extra controls above the steps (admin library, etc.)
   stickyTop?: number;        // px offset of the sticky preview (use ~100 under a fixed navbar)
+  showPreview?: boolean;   // default true; the public page turns it off and draws its own bigger preview
+  pages?: number;     // page count from an external preview (used by the strength coach)
 };
 
-export default function CvEditor({ value: cv, onChange, onDownload, downloadLabel = "Save as PDF", watermark = false, toolbar, stickyTop = 12 }: CvEditorProps) {
+export default function CvEditor({ value: cv, onChange, onDownload, downloadLabel = "Save as PDF", watermark = false, toolbar, stickyTop = 12, showPreview = true, pages: pagesProp }: CvEditorProps) {
   const [i, setI] = useState(0);
   const [left, setLeft] = useState<number[]>([]);
   const [pages, setPages] = useState(1);
   const [msg, setMsg] = useState("");
+  const pageCount = pagesProp ?? pages;
 
   useEffect(() => {
     const on = (e: MessageEvent) => { if (e.data && typeof e.data.cvPages === "number") setPages(e.data.cvPages); };
@@ -491,7 +494,7 @@ export default function CvEditor({ value: cv, onChange, onDownload, downloadLabe
   .cv-step{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font:inherit}
   .cv-step.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .cv-dot{width:8px;height:8px;border-radius:50%;background:var(--line)}.cv-dot.done{background:var(--ok)}.cv-dot.todo{background:var(--bad)}.cv-dot.fix{background:var(--warn)}
-  .cv-main{display:grid;grid-template-columns:minmax(0,1fr) 500px;gap:18px;align-items:start}
+  .cv-main{display:grid;grid-template-columns:${showPreview ? "minmax(0,1fr) 500px" : "minmax(0,1fr)"};gap:18px;align-items:start}
   @media(max-width:1100px){.cv-main{grid-template-columns:1fr}}
   .cv-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px}
   .cv-panel h2{font:700 20px Georgia,serif;margin:0}
@@ -513,7 +516,7 @@ export default function CvEditor({ value: cv, onChange, onDownload, downloadLabe
   .cv-foot{display:flex;justify-content:space-between;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
   .cv-alert{display:flex;gap:8px;background:#FFFBEB;border:1px solid #FCD34D;color:#78350F;border-radius:10px;padding:10px 12px;margin-bottom:14px}
   .cv-alert ul{margin:2px 0 0;padding-left:18px}
-  .cv-side{position:sticky;top:${stickyTop}px;display:flex;flex-direction:column;gap:12px}
+  .cv-side{position:${showPreview ? "sticky" : "static"};top:${stickyTop}px;display:flex;flex-direction:column;gap:12px}
   .cv-prev{border:1px solid var(--line);border-radius:12px;background:#94A3B8;width:100%;overflow:hidden}
   .cv-prev-in{width:794px;height:1060px;transform:scale(.6);transform-origin:top left}.cv-prev-box{width:476px;height:636px;overflow:hidden}
   .cv-prev iframe{width:794px;height:1060px;border:0;display:block}
@@ -655,14 +658,18 @@ export default function CvEditor({ value: cv, onChange, onDownload, downloadLabe
         </div>
 
         <aside className="cv-side">
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Preview · {pages} page{pages === 1 ? "" : "s"} (scroll inside the preview to see the rest)</div>
-          <div className="cv-prev" aria-label="Live CV preview">
-            <div className="cv-prev-box"><div className="cv-prev-in"><iframe title="CV preview" srcDoc={previewHtml} sandbox="allow-scripts" /></div></div>
-          </div>
+           {showPreview && (
+              <>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>Preview · {pages} page{pages === 1 ? "" : "s"} (scroll inside the preview to see the rest)</div>
+                <div className="cv-prev" aria-label="Live CV preview">
+                  <div className="cv-prev-box"><div className="cv-prev-in"><iframe title="CV preview" srcDoc={previewHtml} sandbox="allow-scripts" /></div></div>
+                </div>
+              </>
+            )}
           <button type="button" className="cv-btn primary" disabled={blocking.length > 0} onClick={download}>
             <Download size={15} /> {downloadLabel}
           </button>
-          <Coach cv={cv} pages={pages} />
+          <Coach cv={cv} pages={pageCount} />
           {blocking.length > 0 ? (
             <div className="cv-alert" style={{ marginBottom: 0 }}>
               <AlertTriangle size={16} style={{ flex: "none", marginTop: 3 }} />

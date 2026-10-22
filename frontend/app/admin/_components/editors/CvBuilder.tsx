@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Copy, Download, Globe, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import CvEditor from "@/components/cv/CvEditor";
+import WatermarkSettings from "./WatermarkSettings";
 import { EMPTY, KEY, LIB_KEY, norm, problems, saveFile, uid, type CV, type Lib } from "@/lib/cv/engine";
 
 export default function CvBuilder() {
@@ -96,5 +97,10 @@ export default function CvBuilder() {
   );
 
   // key resets the step tabs when you switch CVs
-  return <CvEditor key={lib.active} value={cv} onChange={onChange} toolbar={toolbar} />;
+  return (
+    <>
+      <CvEditor key={lib.active} value={cv} onChange={onChange} toolbar={toolbar} />
+      <WatermarkSettings />
+    </>
+  );
 }
